@@ -3,7 +3,7 @@ import requests
 from contextlib import nullcontext
 
 import wandb
-import ray
+# import ray
 import hydra
 from omegaconf import OmegaConf, DictConfig
 import matplotlib.pyplot as plt
@@ -86,24 +86,24 @@ def retrieve_config(entity, project, exp_id):
 #     return wrapper
 
 
-def create_ray_wrapper(main_func, num_cpus=15, num_gpus=1):
-    """
-    main_func(conf)
-    """
-    @ray.remote(num_cpus=num_cpus, num_gpus=num_gpus)
-    def ray_wrapper(conf):
-            main_func(conf)
-
-    def my_wrapper(conf):
-        if 'ray' in conf.keys() and conf.ray.enabled:
-            ray.init(address=conf.ray.address)
-            out = ray.get(ray_wrapper.remote(conf))
-        else:
-            print('-- Running without RAY')
-            out = main_func(conf)
-        return out
-
-    return my_wrapper
+# def create_ray_wrapper(main_func, num_cpus=15, num_gpus=1):
+#     """
+#     main_func(conf)
+#     """
+#     @ray.remote(num_cpus=num_cpus, num_gpus=num_gpus)
+#     def ray_wrapper(conf):
+#             main_func(conf)
+#
+#     def my_wrapper(conf):
+#         if 'ray' in conf.keys() and conf.ray.enabled:
+#             ray.init(address=conf.ray.address)
+#             out = ray.get(ray_wrapper.remote(conf))
+#         else:
+#             print('-- Running without RAY')
+#             out = main_func(conf)
+#         return out
+#
+#     return my_wrapper
 
 
 def create_hydra_wrapper(main_func, path_to_conf_dir, conf_name):
