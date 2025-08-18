@@ -1,6 +1,7 @@
 import functools
 import requests
 from contextlib import nullcontext
+import os
 
 import wandb
 # import ray
@@ -114,7 +115,7 @@ def create_hydra_wrapper(main_func, path_to_conf_dir, conf_name):
     - path_to_config_dir: str
     - conf_name: str
     """
-    @hydra.main(version_base=None, config_path=path_to_conf_dir, config_name=conf_name)
+    @hydra.main(version_base=None, config_path=os.path.join('..', path_to_conf_dir), config_name=conf_name)
     def hydra_wrapper(conf: DictConfig):
         print(OmegaConf.to_yaml(conf))
         out = main_func(conf)
