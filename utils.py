@@ -180,6 +180,7 @@ def save_hf_format(policy, tokenizer, dir_path):
 
 
 def model_summary(model: torch.nn.Module):
+    print(model)
     num_trainable_params = sum(p.numel() for p in model.parameters() if p.requires_grad)
     num_params = sum(p.numel() for p in model.parameters())
     print()
