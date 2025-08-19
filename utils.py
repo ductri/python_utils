@@ -20,36 +20,28 @@ def create_wandb_wrapper(main_func, prefix=''):
     main_func(conf, unique_name)
     """
     def wrapper(conf):
-        project_name = conf.wandb.project
+        default_context = nullcontext()
+        default_unique_name = 'a_unique_name'
 
-        # Not a clean solution
-        conf_dict = OmegaConf.to_container(conf, resolve=True)
-        if 'run_id' in conf.keys() and conf.run_id != "":
-            training_config = retrieve_config(conf.wandb.entity, project_name, conf.run_id)
-            conf_dict['training_config'] = training_config
-        conf = OmegaConf.create(conf_dict)
-        if 'wandb' in conf.keys() and conf.wandb.enabled:
-            context = wandb.init(entity=conf.wandb.entity, project=project_name, config=conf_dict)
-            context.name = prefix + context.name
-            unique_name = context.name
-        else:
-            context = nullcontext()
-            unique_name = 'a_unique_name'
-        with context:
-            out = main_func(conf, unique_name)
-            if 'notify_slack' in conf.wandb.keys() and conf.wandb.notify_slack:
+        if conf:
+            project_name = conf.wandb.project
+
+            # Not a clean solution
+            conf_dict = OmegaConf.to_container(conf, resolve=True)
+            if 'run_id' in conf.keys() and conf.run_id != "":
+                training_config = retrieve_config(conf.wandb.entity, project_name, conf.run_id)
+                conf_dict['training_config'] = training_config
+            conf = OmegaConf.create(conf_dict)
+            if 'wandb' in conf.keys() and conf.wandb.enabled:
+                default_context = wandb.init(entity=conf.wandb.entity, project=project_name, config=conf_dict)
+                default_context.name = prefix + context.name
+                default_unique_name = context.name
+        with default_context:
+            out = main_func(conf, default_unique_name)
+            if conf and 'notify_slack' in conf.wandb.keys() and conf.wandb.notify_slack:
                 context.alert(title="Task done", text=f"Run {unique_name} done!")
 
-        # with wandb.init(entity=conf.wandb.entity, project=project_name, config=conf_dict) as run:
-        #     run.name = prefix+run.name
-        #     out = main_func(conf, run.name)
-
         return out
-        # else:
-        #     out = main_func(conf, 'a_unique_name')
-        #     if 'notify_slack' in conf.wandb.keys() and conf.wandb.notify_slack:
-        #         run.alert(title="Task done", text=f"Run {run.name} done!")
-        #     return out
 
     return wrapper
 
