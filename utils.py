@@ -2,6 +2,9 @@ import functools
 import requests
 from contextlib import nullcontext
 import os
+import contextlib
+from vllm.distributed import (destroy_distributed_environment, destroy_model_parallel)
+import gc
 
 import wandb
 # import ray
@@ -139,14 +142,14 @@ def my_generation(model, tokenizer, texts, max_input_length=8, num_return_sequen
     tokenizer.pad_token = tokenizer.eos_token
     tokenizer.padding_side = 'left'
     generation_kwargs = {
-        "min_length": -1,
-        "top_k": 50,
-        "top_p": 1.0,
-        "do_sample": do_sample,
-        "pad_token_id": tokenizer.pad_token_id,
-        "max_new_tokens": max_output_length,
-        'num_return_sequences': num_return_sequences,
-    }
+            "min_length": -1,
+            "top_k": 50,
+            "top_p": 1.0,
+            "do_sample": do_sample,
+            "pad_token_id": tokenizer.pad_token_id,
+            "max_new_tokens": max_output_length,
+            'num_return_sequences': num_return_sequences,
+            }
     query_tensors = tokenizer(texts, max_length=max_input_length, padding='max_length',
             truncation=True)
     query_tensors['input_ids'] = torch.tensor(query_tensors['input_ids']).to(device)
@@ -183,4 +186,16 @@ def model_summary(model: torch.nn.Module):
     print(f'| #trainable_params: {numerize(num_trainable_params)}')
     print('|----------------------------------')
     print()
+
+
+
+def destroy_vllm_model(vllm_model):
+    del vllm_model
+    destroy_model_parallel()
+    destroy_distributed_environment()
+    with contextlib.suppress(AssertionError):
+        torch.distributed.destroy_process_group()
+    gc.collect()
+    torch.cuda.empty_cache()
+    print("Successfully delete the llm pipeline and free the GPU memory!")
 
